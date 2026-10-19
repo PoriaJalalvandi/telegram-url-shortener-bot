@@ -1,5 +1,5 @@
 import sqlite3
-
+from datetime import datetime, timezone
 
 DATABASE = "url_shortener.db"
 
@@ -38,6 +38,63 @@ def create_tables():
     connection.close()
 
 
+def create_user(telegram_user_id, username, first_name):
+    connection = sqlite3.connect(DATABASE)
+    cursor = connection.cursor()
+
+    created_at = datetime.now(timezone.utc).isoformat()
+
+    cursor.execute(
+        """
+        INSERT OR IGNORE INTO users (
+            telegram_user_id,
+            username,
+            first_name,
+            created_at
+        )
+        VALUES (?, ?, ?, ?)
+        """,
+        (telegram_user_id, username, first_name, created_at),
+    )
+
+    connection.commit()
+    connection.close()
+
+
+def get_user_by_telegram_id(telegram_user_id):
+    connection = sqlite3.connect(DATABASE)
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT id, telegram_user_id, username, first_name, created_at
+        FROM users
+        WHERE telegram_user_id = ?
+        """,
+        (telegram_user_id,)
+    )
+
+    user = cursor.fetchone()
+
+    connection.close()
+
+    return user
+
+
 if __name__ == "__main__":
     create_tables()
-    print("Database and tables created successfully.")
+
+    create_user(
+        123456789,
+        "ali_test",
+        "Ali",
+    )
+
+    user = get_user_by_telegram_id(123456789)
+    print(f"Retrieved user: {user}")
+
+    user = get_user_by_telegram_id(999999999)
+    print(f"Retrieved user: {user}")
+    
+    print("test user created successfully.")
+    
