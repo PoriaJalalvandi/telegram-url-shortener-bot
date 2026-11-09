@@ -1,14 +1,33 @@
 import sqlite3
 from datetime import datetime, timezone
 
+
 DATABASE = "url_shortener.db"
 
 
-def create_tables():
+# -------------------------
+# Database connection
+# -------------------------
+
+def get_connection():
     connection = sqlite3.connect(DATABASE)
+
+    # SQLite does not enforce foreign keys by default.
+    connection.execute("PRAGMA foreign_keys = ON")
+
+    return connection
+
+
+# -------------------------
+# Database setup
+# -------------------------
+
+def create_tables():
+    connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             telegram_user_id INTEGER UNIQUE NOT NULL,
@@ -16,9 +35,11 @@ def create_tables():
             first_name TEXT,
             created_at TEXT NOT NULL
         )
-    """)
+        """
+    )
 
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS links (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -30,16 +51,22 @@ def create_tables():
             is_active INTEGER NOT NULL DEFAULT 1,
             click_count INTEGER NOT NULL DEFAULT 0,
             last_click_at TEXT,
+
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
-    """)
+        """
+    )
 
     connection.commit()
     connection.close()
 
 
+# -------------------------
+# User functions
+# -------------------------
+
 def create_user(telegram_user_id, username, first_name):
-    connection = sqlite3.connect(DATABASE)
+    connection = get_connection()
     cursor = connection.cursor()
 
     created_at = datetime.now(timezone.utc).isoformat()
@@ -54,7 +81,12 @@ def create_user(telegram_user_id, username, first_name):
         )
         VALUES (?, ?, ?, ?)
         """,
-        (telegram_user_id, username, first_name, created_at),
+        (
+            telegram_user_id,
+            username,
+            first_name,
+            created_at,
+        ),
     )
 
     connection.commit()
@@ -62,16 +94,21 @@ def create_user(telegram_user_id, username, first_name):
 
 
 def get_user_by_telegram_id(telegram_user_id):
-    connection = sqlite3.connect(DATABASE)
+    connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute(
         """
-        SELECT id, telegram_user_id, username, first_name, created_at
+        SELECT
+            id,
+            telegram_user_id,
+            username,
+            first_name,
+            created_at
         FROM users
         WHERE telegram_user_id = ?
         """,
-        (telegram_user_id,)
+        (telegram_user_id,),
     )
 
     user = cursor.fetchone()
@@ -81,20 +118,82 @@ def get_user_by_telegram_id(telegram_user_id):
     return user
 
 
-if __name__ == "__main__":
-    create_tables()
+# -------------------------
+# Link functions
+# -------------------------
 
-    create_user(
-        123456789,
-        "ali_test",
-        "Ali",
+def create_link(
+    user_id,
+    original_url,
+    short_code,
+    is_custom=False,
+    expires_at=None,
+):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    created_at = datetime.now(timezone.utc).isoformat()
+
+    cursor.execute(
+        """
+        INSERT INTO links (
+            user_id,
+            original_url,
+            short_code,
+            is_custom,
+            created_at,
+            expires_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            original_url,
+            short_code,
+            is_custom,
+            created_at,
+            expires_at,
+        ),
     )
 
-    user = get_user_by_telegram_id(123456789)
-    print(f"Retrieved user: {user}")
+    connection.commit()
+    connection.close()
 
-    user = get_user_by_telegram_id(999999999)
-    print(f"Retrieved user: {user}")
-    
-    print("test user created successfully.")
-    
+
+def get_link_by_short_code(short_code):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            id,
+            user_id,
+            original_url,
+            short_code,
+            is_custom,
+            created_at,
+            expires_at,
+            is_active,
+            click_count,
+            last_click_at
+        FROM links
+        WHERE short_code = ?
+        """,
+        (short_code,),
+    )
+
+    link = cursor.fetchone()
+
+    connection.close()
+
+    return link
+
+
+# -------------------------
+# Run database setup
+# -------------------------
+
+if __name__ == "__main__":
+    create_tables()
+    print("Database tables are ready.")
