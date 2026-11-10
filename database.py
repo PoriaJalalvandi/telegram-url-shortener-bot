@@ -130,34 +130,40 @@ def create_link(
     expires_at=None,
 ):
     connection = get_connection()
-    cursor = connection.cursor()
 
-    created_at = datetime.now(timezone.utc).isoformat()
+    try:
+        cursor = connection.cursor()
 
-    cursor.execute(
-        """
-        INSERT INTO links (
-            user_id,
-            original_url,
-            short_code,
-            is_custom,
-            created_at,
-            expires_at
+        created_at = datetime.now(timezone.utc).isoformat()
+
+        cursor.execute(
+            """
+            INSERT INTO links (
+                user_id,
+                original_url,
+                short_code,
+                is_custom,
+                created_at,
+                expires_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                user_id,
+                original_url,
+                short_code,
+                is_custom,
+                created_at,
+                expires_at,
+            ),
         )
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (
-            user_id,
-            original_url,
-            short_code,
-            is_custom,
-            created_at,
-            expires_at,
-        ),
-    )
 
-    connection.commit()
-    connection.close()
+        connection.commit()
+
+        return cursor.lastrowid
+
+    finally:
+        connection.close()
 
 
 def get_link_by_short_code(short_code):
