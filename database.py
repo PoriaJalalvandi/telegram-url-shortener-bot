@@ -44,6 +44,7 @@ def create_tables():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             original_url TEXT NOT NULL,
+            normalized_url TEXT,
             short_code TEXT UNIQUE NOT NULL,
             is_custom INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL,
@@ -128,8 +129,13 @@ def create_link(
     short_code,
     is_custom=False,
     expires_at=None,
+    normalized_url=None,
+    connection=None
 ):
-    connection = get_connection()
+    owns_connection = connection is None
+
+    if owns_connection:
+        connection = get_connection()
 
     try:
         cursor = connection.cursor()
@@ -141,30 +147,38 @@ def create_link(
             INSERT INTO links (
                 user_id,
                 original_url,
+                normalized_url,
                 short_code,
                 is_custom,
                 created_at,
                 expires_at
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 user_id,
                 original_url,
+                normalized_url,
                 short_code,
                 is_custom,
                 created_at,
-                expires_at,
-            ),
+                expires_at
+            )
         )
 
-        connection.commit()
+        if owns_connection:
+            connection.commit()
 
         return cursor.lastrowid
 
-    finally:
-        connection.close()
+    except Exception:
+        if owns_connection:
+            connection.rollback()
+        raise
 
+    finally:
+        if owns_connection:
+            connection.close()
 
 def get_link_by_short_code(short_code):
     connection = get_connection()
@@ -203,3 +217,55 @@ def get_link_by_short_code(short_code):
 if __name__ == "__main__":
     create_tables()
     print("Database tables are ready.")
+
+def get_duplicate_link(
+    user_id,
+    normalized_url,
+    connection=None
+):
+    owns_connection = connection is None
+
+    if owns_connection:
+        connection = get_connection()
+
+    try:
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                user_id,
+                original_url,
+                short_code,
+                is_custom,
+                created_at,
+                expires_at,
+                is_active,
+                click_count,
+                last_click_at,
+                normalized_url
+            FROM links
+            WHERE user_id = ?
+              AND normalized_url = ?
+              AND is_custom = 0
+              AND is_active = 1
+              AND (
+                    expires_at IS NULL
+                    OR expires_at > ?
+                  )
+            ORDER BY id ASC
+            LIMIT 1
+            """,
+            (
+                user_id,
+                normalized_url,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+
+        return cursor.fetchone()
+
+    finally:
+        if owns_connection:
+            connection.close()
