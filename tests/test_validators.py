@@ -1,6 +1,6 @@
 import unittest
 
-from validators import validate_url
+from validators import validate_url, validate_alias
 
 
 class TestURLValidation(unittest.TestCase):
@@ -38,6 +38,42 @@ class TestURLValidation(unittest.TestCase):
         for url in invalid_urls:
             with self.subTest(url=url):
                 self.assertFalse(validate_url(url))
+
+    def test_valid_aliases(self):
+
+        valid_aliases = [
+            "goldflex",
+            "campaign2026",
+            "gold-flex",
+            "telegram_ads",
+            "GoldFlex",
+            "abc",
+        ]
+
+        for alias in valid_aliases:
+            with self.subTest(alias=alias):
+                self.assertTrue(validate_alias(alias))
+
+    def test_invalid_aliases(self):
+
+        invalid_aliases = [
+            "",
+            "ab",
+            "my campaign",
+            "gold/flex",
+            "gold.flex",
+            "کمپین",
+            "admin",
+            "ADMIN",
+            "api",
+            "a" * 31,
+            12345,
+            None,
+        ]
+
+        for alias in invalid_aliases:
+            with self.subTest(alias=alias):
+                self.assertFalse(validate_alias(alias))
 
 
 if __name__ == "__main__":

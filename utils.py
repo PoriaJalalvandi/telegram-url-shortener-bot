@@ -7,9 +7,14 @@ from database import (
     create_link,
     get_link_by_short_code,
     get_duplicate_link,
+    is_alias_available,
 )
 
-from validators import validate_url, normalize_url
+from validators import (
+    validate_url,
+    normalize_url,
+    validate_alias,
+)
 
 
 def generate_short_code(length=6):
@@ -110,3 +115,68 @@ if __name__ == "__main__":
 
     except ValueError as error:
         print(f"Validation error: {error}")
+
+
+def create_custom_link(user_id, original_url, alias):
+
+    # Step 1: Validate URL
+    if not validate_url(original_url):
+        raise ValueError("Invalid URL")
+
+    # Step 2: Validate alias
+    if not validate_alias(alias):
+        raise ValueError("Invalid alias")
+
+    # Step 3: Normalize inputs
+    normalized_url = normalize_url(original_url)
+    normalized_alias = alias.lower()
+
+    # Step 4: Open database connection
+    connection = get_connection()
+
+    try:
+        # Step 5: Start transaction
+        connection.execute("BEGIN IMMEDIATE")
+
+        # Step 6: Check alias availability
+        if not is_alias_available(
+            normalized_alias,
+            connection=connection,
+        ):
+            raise ValueError("Alias already taken")
+
+        # Step 7: Create custom link
+        link_id = create_link(
+            user_id=user_id,
+            original_url=original_url,
+            normalized_url=normalized_url,
+            short_code=normalized_alias,
+            is_custom=True,
+            connection=connection,
+        )
+
+        # Step 8: Commit transaction
+        connection.commit()
+
+        return link_id, normalized_alias
+
+    except sqlite3.IntegrityError as error:
+        connection.rollback()
+
+        error_name = getattr(
+            error,
+            "sqlite_errorname",
+            None
+        )
+
+        if error_name == "SQLITE_CONSTRAINT_UNIQUE":
+            raise ValueError("Alias already taken") from error
+
+        raise
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()

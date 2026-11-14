@@ -1,4 +1,6 @@
 import ipaddress
+import re
+
 from urllib.parse import urlsplit, urlunsplit
 
 
@@ -115,3 +117,33 @@ def normalize_url(url):
     )
 
     return normalized_url
+
+
+RESERVED_ALIASES = {
+    "admin",
+    "api",
+    "login",
+    "logout",
+    "register",
+    "dashboard",
+    "health",
+    "static",
+    "favicon.ico",
+}
+
+
+def validate_alias(alias):
+
+    if not isinstance(alias, str):
+        return False
+
+    if not 3 <= len(alias) <= 30:
+        return False
+
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", alias):
+        return False
+
+    if alias.lower() in RESERVED_ALIASES:
+        return False
+
+    return True

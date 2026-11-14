@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from database import create_tables
-from utils import create_short_link
+from utils import create_short_link, create_custom_link
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 
@@ -140,6 +140,234 @@ class TestShortLinkIntegration(unittest.TestCase):
                 WHERE normalized_url = ?
                 """,
                 (url,)
+            ).fetchone()[0]
+
+        finally:
+            connection.close()
+
+        self.assertEqual(count, 1)
+
+    def test_case_insensitive_short_code_uniqueness(self):
+
+        connection = self.get_test_connection()
+
+        try:
+            connection.execute(
+                """
+                INSERT INTO links (
+                    user_id,
+                    original_url,
+                    normalized_url,
+                    short_code,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    1,
+                    "https://example.com/first",
+                    "https://example.com/first",
+                    "GoldFlex",
+                    "2026-11-01T10:00:00+00:00"
+                )
+            )
+
+            with self.assertRaises(sqlite3.IntegrityError):
+                connection.execute(
+                    """
+                    INSERT INTO links (
+                        user_id,
+                        original_url,
+                        normalized_url,
+                        short_code,
+                        created_at
+                    )
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        1,
+                        "https://example.com/second",
+                        "https://example.com/second",
+                        "goldflex",
+                        "2026-11-01T10:00:00+00:00"
+                    )
+                )
+
+        finally:
+            connection.rollback()
+            connection.close()
+
+
+    def test_create_custom_alias(self):
+
+        link_id, short_code = create_custom_link(
+            user_id=1,
+            original_url="https://example.com/gold",
+            alias="GoldFlex"
+        )
+
+        self.assertEqual(short_code, "goldflex")
+
+        connection = self.get_test_connection()
+
+        try:
+            link = connection.execute(
+                """
+                SELECT short_code, is_custom, normalized_url
+                FROM links
+                WHERE id = ?
+                """,
+                (link_id,)
+            ).fetchone()
+
+        finally:
+            connection.close()
+
+        self.assertEqual(link[0], "goldflex")
+        self.assertEqual(link[1], 1)
+        self.assertEqual(
+            link[2],
+            "https://example.com/gold"
+        )
+
+
+    def test_duplicate_custom_alias(self):
+
+        create_custom_link(
+            user_id=1,
+            original_url="https://example.com/first",
+            alias="GoldFlex"
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Alias already taken"
+        ):
+            create_custom_link(
+                user_id=1,
+                original_url="https://example.com/second",
+                alias="goldflex"
+            )
+
+        connection = self.get_test_connection()
+
+        try:
+            count = connection.execute(
+                "SELECT COUNT(*) FROM links"
+            ).fetchone()[0]
+
+        finally:
+            connection.close()
+
+        self.assertEqual(count, 1)
+
+
+    def test_invalid_custom_alias(self):
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Invalid alias"
+        ):
+            create_custom_link(
+                user_id=1,
+                original_url="https://example.com",
+                alias="my alias"
+            )
+
+        connection = self.get_test_connection()
+
+        try:
+            count = connection.execute(
+                "SELECT COUNT(*) FROM links"
+            ).fetchone()[0]
+
+        finally:
+            connection.close()
+
+        self.assertEqual(count, 0)
+
+
+    def test_custom_alias_foreign_key_error(self):
+
+        with self.assertRaises(sqlite3.IntegrityError) as context:
+            create_custom_link(
+                user_id=999999,
+                original_url="https://example.com",
+                alias="newalias"
+            )
+
+        error_name = getattr(
+            context.exception,
+            "sqlite_errorname",
+            None
+        )
+
+        self.assertEqual(
+            error_name,
+            "SQLITE_CONSTRAINT_FOREIGNKEY"
+        )
+
+
+    def test_concurrent_custom_alias(self):
+
+        barrier = Barrier(2)
+
+        def create_alias_request(user_id, alias):
+            barrier.wait()
+
+            try:
+                return create_custom_link(
+                    user_id=user_id,
+                    original_url="https://example.com/gold",
+                    alias=alias,
+                )
+
+            except ValueError as error:
+                return str(error)
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+
+            futures = [
+                executor.submit(
+                    create_alias_request, 1, "GoldFlex"
+                ),
+                executor.submit(
+                    create_alias_request, 1, "goldflex"
+                ),
+            ]
+
+            results = [
+                future.result()
+                for future in futures
+            ]
+
+        # Exactly one request must succeed
+        successful = [
+            result
+            for result in results
+            if isinstance(result, tuple)
+        ]
+
+        # Exactly one request must fail
+        failed = [
+            result
+            for result in results
+            if result == "Alias already taken"
+        ]
+
+        self.assertEqual(len(successful), 1)
+        self.assertEqual(len(failed), 1)
+
+        connection = self.get_test_connection()
+
+        try:
+            count = connection.execute(
+                """
+                SELECT COUNT(*)
+                FROM links
+                WHERE LOWER(short_code) = ?
+                """,
+                ("goldflex",)
             ).fetchone()[0]
 
         finally:

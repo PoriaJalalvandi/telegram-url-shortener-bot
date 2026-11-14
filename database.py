@@ -57,6 +57,10 @@ def create_tables():
         )
         """
     )
+    cursor.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_links_short_code_nocase
+        ON links(short_code COLLATE NOCASE)
+    """)
 
     connection.commit()
     connection.close()
@@ -265,6 +269,33 @@ def get_duplicate_link(
         )
 
         return cursor.fetchone()
+
+    finally:
+        if owns_connection:
+            connection.close()
+
+
+def is_alias_available(alias, connection=None):
+
+    owns_connection = connection is None
+
+    if owns_connection:
+        connection = get_connection()
+
+    try:
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT 1
+            FROM links
+            WHERE LOWER(short_code) = LOWER(?)
+            LIMIT 1
+            """,
+            (alias,)
+        )
+
+        return cursor.fetchone() is None
 
     finally:
         if owns_connection:

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from database import get_duplicate_link
+from database import get_duplicate_link, is_alias_available
 
 
 class TestDuplicateDetection(unittest.TestCase):
@@ -140,6 +140,24 @@ class TestDuplicateDetection(unittest.TestCase):
         )
 
         self.assertIsNone(link)
+
+    def test_alias_available(self):
+
+        available = is_alias_available("newalias")
+
+        self.assertTrue(available)
+
+    def test_alias_taken(self):
+
+        available = is_alias_available("abc123")
+
+        self.assertFalse(available)
+
+    def test_alias_case_insensitive(self):
+
+        available = is_alias_available("ABC123")
+
+        self.assertFalse(available)
         
 
 
