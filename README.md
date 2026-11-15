@@ -1,12 +1,14 @@
-# PoriaLinkBot
+# URL Shortener & Campaign Analytics
 
-A Telegram URL shortener with optional link expiration, private link management,
-event-based click analytics, and administrator-only CSV exports.
+A general-purpose Telegram-based URL shortener and campaign analytics tool with
+expiring short links, UTM campaign tracking, click analytics, administrator
+reporting, and secure CSV exports. Users can manage their own links privately;
+analytics, reports, and exports are restricted to authorized administrators.
 
 Built as an independent Python portfolio project. The code is prepared for a
 separate deployment stage; no public production deployment, traffic, or company
-adoption is claimed. A Telegram display name such as **URL Shortener** is optional;
-the application does not change the existing Telegram username.
+adoption is claimed. The public project title is independent of the existing
+Telegram bot identity; its username, token, and displayed name remain unchanged.
 
 [Quick start](#quick-start) · [Architecture](#architecture) ·
 [Commands](#telegram-commands) · [Security](#security-and-privacy) ·
@@ -173,8 +175,8 @@ exists, and dependency compatibility is not a vulnerability assessment.
 Clone your reviewed repository URL; this placeholder is not an existing remote:
 
 ```bash
-git clone <your-reviewed-repository-url> porialinkbot
-cd porialinkbot
+git clone <your-reviewed-repository-url> telegram-url-shortener-bot
+cd telegram-url-shortener-bot
 python3.14 -m venv .venv
 .venv/bin/python -m pip install -r requirements.lock
 .venv/bin/python -m pip check
@@ -290,7 +292,8 @@ organizational security requirements separately; no company branding is added he
 ## Publication and licensing
 
 [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) contains the release gate, portfolio
-metadata suggestions, and the authorized v1.0.0 publication procedure. The
+metadata suggestions, and the historical v1.0.0 publication procedure. The
+existing v1.0.0 tag is preserved during documentation and branding updates. The
 existing Git remote, branch, commit authors, and history are preserved. Git
 references record the publication result; no production deployment is implied.
 

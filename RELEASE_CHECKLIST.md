@@ -1,10 +1,12 @@
 # Release preparation and publication gate
 
-Prepared for PoriaLinkBot's independent portfolio release v1.0.0. The owner has
+Historical preparation record for the independent portfolio release v1.0.0 of
+URL Shortener & Campaign Analytics. The owner had
 authorized commit/push and an annotated release tag, and explicitly accepts the
 visibility of the existing Git author email. Git references are authoritative
 for the final publication result; this document records the pre-push review.
-No deployment, history rewrite, rebranding, or license addition is authorized. This report intentionally contains no real user,
+That release preparation did not authorize deployment, history rewriting,
+rebranding, or a license addition. This report intentionally contains no real user,
 administrator, token, email-address, or remote-owner values.
 
 ## Release gate
@@ -99,8 +101,10 @@ were added solely for documentation or ignore-file edits.
 
 ## Portfolio presentation
 
-**Recommended description:** Telegram URL shortener with expiring links, private
-user management, administrator analytics, and secure CSV exports, built with
+**Public project title:** URL Shortener & Campaign Analytics.
+
+**Recommended description:** Telegram URL shortener with expiring links, UTM
+campaign tracking, click analytics, administrator reporting, and secure CSV exports, built with
 Python, Flask, and SQLite.
 
 **Suggested topics:** `python`, `telegram-bot`, `python-telegram-bot`, `flask`,
@@ -111,7 +115,7 @@ GitHub Release page or production deployment is implied by creating a Git tag.
 
 **Draft release notes:**
 
-- Initial independent portfolio release of PoriaLinkBot.
+- Initial independent portfolio release of URL Shortener & Campaign Analytics.
 - URL shortening, duplicate reuse, optional UTC expiration, and private owned links.
 - Atomic click events with destination UTM, daily/client, and heuristic bot analytics.
 - Private administrator dashboard and bounded, formula-safe CSV exports.
@@ -123,7 +127,11 @@ review. Do not describe the project as open source until an appropriate license
 is deliberately chosen. Confirm source ownership, permission to publish, and
 third-party obligations before licensing; no license has been assumed or added.
 
-## Authorized release procedure
+## Historical v1.0.0 release procedure
+
+The commands below record the original publication procedure and its original
+commit/tag messages. They are not instructions for branding updates: preserve
+the existing v1.0.0 tag, create no new tag, and do not deploy the application.
 
 The owner accepted the history email visibility and authorized portfolio
 publication. Inspect ignored-file boundaries and the disclosed advisory/clean-

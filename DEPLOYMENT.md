@@ -1,4 +1,4 @@
-# Deployment guide — PoriaLinkBot
+# Deployment guide — URL Shortener & Campaign Analytics
 
 This is an operator handoff, **not a claim that deployment has occurred**.
 Examples use synthetic hostnames, service paths, and placeholders. Replace them
@@ -189,7 +189,7 @@ journals restricted. Do not put credentials in Gunicorn arguments/configuration.
 
 ```ini
 [Unit]
-Description=PoriaLinkBot redirect server
+Description=URL Shortener & Campaign Analytics redirect server
 After=network-online.target
 Wants=network-online.target
 StartLimitIntervalSec=300
@@ -220,7 +220,7 @@ WantedBy=multi-user.target
 
 ```ini
 [Unit]
-Description=PoriaLinkBot Telegram polling service
+Description=URL Shortener & Campaign Analytics Telegram polling service
 After=network-online.target
 Wants=network-online.target
 StartLimitIntervalSec=300
