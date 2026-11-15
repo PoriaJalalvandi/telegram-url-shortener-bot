@@ -32,8 +32,6 @@ def backfill_normalized_urls():
                 (normalized_url, link_id),
             )
 
-            print(f"Updated link {link_id}: {normalized_url}")
-
         connection.commit()
 
         print(f"Backfill completed: {len(links)} links updated.")

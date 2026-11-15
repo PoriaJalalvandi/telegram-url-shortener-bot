@@ -1,7 +1,28 @@
 import ipaddress
 import re
+from datetime import datetime, timezone
 
 from urllib.parse import urlsplit, urlunsplit
+
+
+def normalize_expires_at(expires_at):
+    """Accept None or a strictly future, timezone-aware ISO 8601 string."""
+    if expires_at is None:
+        return None
+    try:
+        if not isinstance(expires_at, str):
+            raise ValueError
+        expiration = datetime.fromisoformat(expires_at)
+        if expiration.utcoffset() is None:
+            raise ValueError
+        expiration = expiration.astimezone(timezone.utc)
+        if expiration <= datetime.now(timezone.utc):
+            raise ValueError
+    except (ValueError, TypeError, OverflowError) as error:
+        raise ValueError(
+            "expires_at must be a future timezone-aware ISO 8601 timestamp"
+        ) from error
+    return expiration.isoformat()
 
 
 def validate_url(url):

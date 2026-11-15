@@ -60,6 +60,7 @@ class TestCreateShortLink(unittest.TestCase):
             original_url="https://example.com",
             normalized_url="https://example.com/",
             short_code="xyz789",
+            expires_at=None,
             connection=ANY,
         )
 
@@ -90,6 +91,7 @@ class TestCreateShortLink(unittest.TestCase):
             original_url=url,
             normalized_url=url,
             short_code="utm123",
+            expires_at=None,
             connection=ANY,
         )
 

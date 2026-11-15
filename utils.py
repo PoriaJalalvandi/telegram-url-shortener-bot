@@ -14,6 +14,7 @@ from validators import (
     validate_url,
     normalize_url,
     validate_alias,
+    normalize_expires_at,
 )
 
 
@@ -42,7 +43,8 @@ def generate_unique_short_code(length=6, max_attempts=5):
     raise RuntimeError("Could not generate a unique short code")
 
 
-def create_short_link(user_id, original_url, max_attempts=5):
+def create_short_link(user_id, original_url, max_attempts=5, *, expires_at=None, return_reused=False):
+    """Return (id, code), optionally appending reuse status from the transaction."""
 
     # Step 1: Validate URL
     if not validate_url(original_url):
@@ -50,6 +52,7 @@ def create_short_link(user_id, original_url, max_attempts=5):
 
     # Step 2: Normalize URL
     normalized_url = normalize_url(original_url)
+    expires_at = normalize_expires_at(expires_at)
 
     # Step 3: Open a shared database connection
     connection = get_connection()
@@ -67,7 +70,8 @@ def create_short_link(user_id, original_url, max_attempts=5):
 
         if existing_link is not None:
             connection.commit()
-            return existing_link[0], existing_link[3]
+            result = (existing_link[0], existing_link[3])
+            return (*result, True) if return_reused else result
 
         # Step 6: Create a new short link
         for attempt in range(max_attempts):
@@ -80,16 +84,18 @@ def create_short_link(user_id, original_url, max_attempts=5):
                     original_url=original_url,
                     normalized_url=normalized_url,
                     short_code=short_code,
+                    expires_at=expires_at,
                     connection=connection,
                 )
 
                 connection.commit()
 
-                return link_id, short_code
+                result = (link_id, short_code)
+                return (*result, False) if return_reused else result
 
             except sqlite3.IntegrityError as error:
 
-                if "links.short_code" not in str(error):
+                if not any(marker in str(error) for marker in ("links.short_code", "idx_links_short_code_nocase")):
                     raise
 
         raise RuntimeError(
@@ -117,7 +123,7 @@ if __name__ == "__main__":
         print(f"Validation error: {error}")
 
 
-def create_custom_link(user_id, original_url, alias):
+def create_custom_link(user_id, original_url, alias, *, expires_at=None):
 
     # Step 1: Validate URL
     if not validate_url(original_url):
@@ -130,6 +136,7 @@ def create_custom_link(user_id, original_url, alias):
     # Step 3: Normalize inputs
     normalized_url = normalize_url(original_url)
     normalized_alias = alias.lower()
+    expires_at = normalize_expires_at(expires_at)
 
     # Step 4: Open database connection
     connection = get_connection()
@@ -152,6 +159,7 @@ def create_custom_link(user_id, original_url, alias):
             normalized_url=normalized_url,
             short_code=normalized_alias,
             is_custom=True,
+            expires_at=expires_at,
             connection=connection,
         )
 
